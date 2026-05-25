@@ -287,30 +287,29 @@ function executeRound(state, humanMoves) {
   }
 
   // 6. Скипетр
+  let scepterAppliedId = null;
   if(state.scepterHolderId !== null) {
     const sid = state.scepterHolderId;
     if(!state.players[sid]?.alive) {
       events.push({ type:'scepter_removed', pid: sid });
-      state.scepterHolderId = null;
     } else {
       events.push({ type:'scepter_first', pid: sid });
       events.push({ type:'scepter_applied', pid: sid });
-      // Ставим первым в order ДО перемешивания
-      state.order = state.order.filter(id => id !== sid);
-      state.order.unshift(sid);
-      state.scepterHolderId = null;
+      scepterAppliedId = sid;
     }
+    state.scepterHolderId = null;
   }
 
   // 7. Конец раунда
   state.round++;
   state.phase = 'planning';
 
-  // Перемешиваем порядок НО сохраняем первого (holder скипетра)
-  const first = state.order[0];
-  const rest = state.order.slice(1);
-  shuffle(rest);
-  state.order = [first, ...rest];
+  // Перемешиваем — если был скипетр, holder идёт первым один раунд
+  shuffle(state.order);
+  if(scepterAppliedId !== null && state.players[scepterAppliedId]?.alive) {
+    state.order = state.order.filter(id => id !== scepterAppliedId);
+    state.order.unshift(scepterAppliedId);
+  }
 
   return { state, events };
 }

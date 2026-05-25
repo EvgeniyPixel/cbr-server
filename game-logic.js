@@ -196,8 +196,7 @@ function executeRound(state, humanMoves) {
       delete state.pickups[pk];
       if(ptype === 'scepter') {
         state.scepterHolderId = pid;
-        state.scepterJustPickedUp = true;
-        console.log(`[scepter] picked up by player ${pid}, justPickedUp=true`);
+        console.log(`[scepter] picked up by player ${pid}`);
         events.push({ type:'pickup_scepter', pid });
       } else {
         const idx = TYPES.indexOf(p.type);
@@ -304,11 +303,16 @@ function executeRound(state, humanMoves) {
   state.round++;
   state.phase = 'planning';
 
-  // Перемешиваем — если был скипетр, holder идёт первым один раунд
-  shuffle(state.order);
+  // Порядок: если скипетр — holder первым, остальные не меняются
+  // Если нет скипетра — rotate (первый идёт в конец)
   if(scepterAppliedId !== null && state.players[scepterAppliedId]?.alive) {
     state.order = state.order.filter(id => id !== scepterAppliedId);
     state.order.unshift(scepterAppliedId);
+  } else {
+    // Обычная ротация как в одиночной
+    if(state.order.length > 1) {
+      state.order.push(state.order.shift());
+    }
   }
 
   return { state, events };
@@ -355,7 +359,6 @@ function evolveByKills(p, state, events) {
     // При эволюции в короля выдаём скипетр
     if(p.type === 'king') {
       state.scepterHolderId = p.id;
-      state.scepterJustPickedUp = true;
     }
   }
 }

@@ -286,31 +286,31 @@ function executeRound(state, humanMoves) {
     events.push({ type:'railway_burned' });
   }
 
-  // 6. Скипетр — применяем в конце раунда если есть holder
+  // 6. Скипетр
   if(state.scepterHolderId !== null) {
-    if(!state.players[state.scepterHolderId]?.alive) {
-      events.push({ type:'scepter_removed', pid: state.scepterHolderId });
+    const sid = state.scepterHolderId;
+    if(!state.players[sid]?.alive) {
+      events.push({ type:'scepter_removed', pid: sid });
       state.scepterHolderId = null;
     } else {
-      // Скипетр применился — holder станет первым в следующем раунде
-      events.push({ type:'scepter_first', pid: state.scepterHolderId });
-      events.push({ type:'scepter_applied', pid: state.scepterHolderId });
+      events.push({ type:'scepter_first', pid: sid });
+      events.push({ type:'scepter_applied', pid: sid });
+      // Ставим первым в order ДО перемешивания
+      state.order = state.order.filter(id => id !== sid);
+      state.order.unshift(sid);
       state.scepterHolderId = null;
     }
-  }
-
-  // Переставляем holder первым для следующего раунда (ДО перемешивания)
-  if(state.scepterHolderId !== null && state.players[state.scepterHolderId]?.alive) {
-    state.order = state.order.filter(id => id !== state.scepterHolderId);
-    state.order.unshift(state.scepterHolderId);
   }
 
   // 7. Конец раунда
   state.round++;
   state.phase = 'planning';
 
-  // Перемешиваем порядок (без скипетра — он в начале следующего)
-  shuffle(state.order);
+  // Перемешиваем порядок НО сохраняем первого (holder скипетра)
+  const first = state.order[0];
+  const rest = state.order.slice(1);
+  shuffle(rest);
+  state.order = [first, ...rest];
 
   return { state, events };
 }

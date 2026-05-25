@@ -96,13 +96,8 @@ function executeRound(state, humanMoves) {
     pendingMoves[p.id] = pool[Math.floor(Math.random() * Math.min(2, pool.length))];
   });
 
-  // 2. Скипетр — первым ходит обладатель
+  // 2. Скипетр — первым ходит обладатель (если он есть)
   let execOrder = [...state.order];
-  if(state.scepterHolderId !== null && state.players[state.scepterHolderId]?.alive) {
-    execOrder = execOrder.filter(id => id !== state.scepterHolderId);
-    execOrder.unshift(state.scepterHolderId);
-    events.push({ type:'scepter_first', pid: state.scepterHolderId });
-  }
 
   // 3. Выполняем ходы
   for(const pid of execOrder) {
@@ -291,14 +286,23 @@ function executeRound(state, humanMoves) {
     events.push({ type:'railway_burned' });
   }
 
-  // 6. Скипетр — сброс после применения или если holder погиб
+  // 6. Скипетр — применяем в конце раунда если есть holder
   if(state.scepterHolderId !== null) {
     if(!state.players[state.scepterHolderId]?.alive) {
       events.push({ type:'scepter_removed', pid: state.scepterHolderId });
+      state.scepterHolderId = null;
     } else {
+      // Скипетр применился — holder станет первым в следующем раунде
+      events.push({ type:'scepter_first', pid: state.scepterHolderId });
       events.push({ type:'scepter_applied', pid: state.scepterHolderId });
+      state.scepterHolderId = null;
     }
-    state.scepterHolderId = null;
+  }
+
+  // Переставляем holder первым для следующего раунда (ДО перемешивания)
+  if(state.scepterHolderId !== null && state.players[state.scepterHolderId]?.alive) {
+    state.order = state.order.filter(id => id !== state.scepterHolderId);
+    state.order.unshift(state.scepterHolderId);
   }
 
   // 7. Конец раунда
